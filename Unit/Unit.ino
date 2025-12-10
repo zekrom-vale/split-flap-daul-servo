@@ -18,14 +18,24 @@
 #define ADRESSSW4 3
 #define ADRESSSW5 2
 
-//constants stepper
-#define STEPPERPIN1 11
-#define STEPPERPIN2 10
-#define STEPPERPIN3 9
-#define STEPPERPIN4 8
-#define STEPS 2038 //28BYJ-48 stepper, number of steps
-#define HALLPIN 7 //Pin of hall sensor
-#define AMOUNTFLAPS 45
+//constants stepper A
+#define STEPPERPINA1 11
+#define STEPPERPINA2 10
+#define STEPPERPINA3 9
+#define STEPPERPINA4 8
+#define STEPSA 2038 //28BYJ-48 stepper, number of steps
+#define HALLPINA 7 //Pin of hall sensor
+#define AMOUNTFLAPSA 45
+
+
+//constants stepper B
+#define STEPPERPINB1 19
+#define STEPPERPINB2 18
+#define STEPPERPINB3 17
+#define STEPPERPINB4 16
+#define STEPSB 2038 //28BYJ-48 stepper, number of steps
+#define HALLPINB 15 //Pin of hall sensor
+#define AMOUNTFLAPSB 45
 
 //constants others
 #define BAUDRATE 115200
@@ -34,24 +44,44 @@
 unsigned long lastRotation = 0;
 
 //globals
-int displayedLetter = 0; //currently shown letter
-int desiredLetter = 0; //letter to be shown
-const String letters[] = {" ", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "Ä", "Ö", "Ü", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ".", "-", "?", "!"};
-Stepper stepper(STEPS, STEPPERPIN1, STEPPERPIN3, STEPPERPIN2, STEPPERPIN4); //stepper setup
-bool lastInd1 = false; //store last status of phase
-bool lastInd2 = false; //store last status of phase
-bool lastInd3 = false; //store last status of phase
-bool lastInd4 = false; //store last status of phase
-float missedSteps = 0; //cummulate steps <1, to compensate via additional step when reaching >1
-int currentlyrotating = 0; // 1 = drum is currently rotating, 0 = drum is standing still
-int stepperSpeed = 10; //current speed of stepper, value only for first homing
-int eeAddress = 0;   //EEPROM address for calibration offset
-int calOffset;       //Offset for calibration in steps, stored in EEPROM, gets read in setup
-int receivedNumber = 0;
+// A
+int displayedLetterA = 0; //currently shown letter
+int desiredLetterA = 0; //letter to be shown
+const String lettersA[] = {" ", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "Ä", "Ö", "Ü", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ".", "-", "?", "!"};
+Stepper stepper(STEPSA, STEPPERPINA1, STEPPERPINA3, STEPPERPINA2, STEPPERPINA4); //stepper setup
+bool lastInd1A = false; //store last status of phase
+bool lastInd2A = false; //store last status of phase
+bool lastInd3A = false; //store last status of phase
+bool lastInd4A = false; //store last status of phase
+float missedStepsA = 0; //cummulate steps <1, to compensate via additional step when reaching >1
+int currentlyrotatingA = 0; // 1 = drum is currently rotating, 0 = drum is standing still
+int stepperSpeedA = 10; //current speed of stepper, value only for first homing
+int eeAddressA = 0;   //EEPROM address for calibration offset
+int calOffsetA;       //Offset for calibration in steps, stored in EEPROM, gets read in setup
+int receivedNumberA = 0;
+
+// B
+int displayedLetterB = 0; //currently shown letter
+int desiredLetterB = 0; //letter to be shown
+const String lettersB[] = {" ", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "Ä", "Ö", "Ü", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ".", "-", "?", "!"};
+Stepper stepper(STEPSB, STEPPERPINB1, STEPPERPINB3, STEPPERPINB2, STEPPERPINB4); //stepper setup
+bool lastInd1B = false; //store last status of phase
+bool lastInd2B = false; //store last status of phase
+bool lastInd3B = false; //store last status of phase
+bool lastInd4B = false; //store last status of phase
+float missedStepsB = 0; //cummulate steps <1, to compensate via additional step when reaching >1
+int currentlyrotatingB = 0; // 1 = drum is currently rotating, 0 = drum is standing still
+int stepperSpeedB = 10; //current speed of stepper, value only for first homing
+int eeAddressB = 0;   //EEPROM address for calibration offset
+int calOffsetB;       //Offset for calibration in steps, stored in EEPROM, gets read in setup
+int receivedNumberB = 0;
+
+
 int i2cAddress;
 
+
 //sleep globals
-const unsigned long WAIT_TIME = 2000;    //wait time before sleep routine gets executed again in milliseconds
+const unsigned long WAIT_TIME = 1000;    //wait time before sleep routine gets executed again in milliseconds
 unsigned long previousMillis = 0;       //stores last time sleep was interrupted
 
 //setup
@@ -64,11 +94,12 @@ void setup() {
   pinMode(ADRESSSW5, INPUT_PULLUP);
 
   //hall sensor
-  pinMode(HALLPIN, INPUT);
+  pinMode(HALLPINA, INPUT);
+  pinMode(HALLPINB, INPUT);
 
   i2cAddress = getaddress(); //get I2C Address and save in variable
 
-#ifdef SERIAL_ENABLE
+#ifdef SERIAL_ENABLEUpdate Unit.ino
   //initialize serial
   Serial.begin(BAUDRATE);
   Serial.println("starting unit");
@@ -85,11 +116,11 @@ void setup() {
   calibrate(true); //home stepper after startup
 
   //test calibration settings
-#ifdef TEST_ENABLE
+#ifdef TEST_ENABLE 
   int calLetters[10] = {0, 26, 1, 21, 14, 43, 30, 31, 32, 39};
   for (int i = 0; i < 10; i++) {
     int currentCalLetter = calLetters[i];
-    rotateToLetter(currentCalLetter);
+    rotateToLetter(currentCalLetter, currentCalLetter);
     delay(5000);
   }
 #endif
@@ -122,24 +153,26 @@ void loop() {
   }  // end of time to sleep
 
   //check if new letter was received through i2c
-  if (displayedLetter != receivedNumber)
+  if (displayedLetterA != receivedNumberA)
   {
-    /*
-      #ifdef SERIAL_ENABLE
-      Serial.print("Value over serial received: ");
-      Serial.print(receivedNumber);
-      Serial.print(" Letter: ");
-      Serial.print(letters[receivedNumber]);
-      Serial.println();
-      #endif
-    */
-    //rotate to new letter
-    rotateToLetter(receivedNumber);
+    if (displayedLetterB != receivedNumberB){
+      //rotate to new letter
+      rotateToLetter(receivedNumberA, receivedNumberB);
+    }
+    else
+    {
+      rotateToLetter(receivedNumberA, -1);
+    }
   }
+  else if(displayedLetterB != receivedNumberB){
+      //rotate to new letter
+      rotateToLetter(-1, receivedNumberB);
+    }
 }
 
 //rotate to letter
-void rotateToLetter(int toLetter) {
+void rotateToLetter(int toLetterA, int toLetterB) {
+// UPDATED UPTO HERE
   if (lastRotation == 0 || (millis() - lastRotation > OVERHEATINGTIMEOUT * 1000)) {
     lastRotation = millis();
     //get letter position
@@ -240,10 +273,14 @@ int getaddress() {
 
 //gets magnet sensor offset from EEPROM in steps
 void getOffset() {
-  EEPROM.get(eeAddress, calOffset);
+  EEPROM.get(eeAddress, calOffsetA);
+  EEPROM.get(eeAddress, calOffsetB);
 #ifdef SERIAL_ENABLE
-  Serial.print("CalOffset from EEPROM: ");
-  Serial.print(calOffset);
+  Serial.print("CalOffsetA from EEPROM: ");
+  Serial.print(calOffsetA);
+  Serial.println();
+  Serial.print("CalOffsetB from EEPROM: ");
+  Serial.print(calOffsetB);
   Serial.println();
 #endif
 }
