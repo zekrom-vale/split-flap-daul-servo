@@ -23,9 +23,9 @@
 #define STEPPERPINA2 10
 #define STEPPERPINA3 9
 #define STEPPERPINA4 8
-#define STEPSA 2038 //28BYJ-48 stepper, number of steps
 #define HALLPINA 7 //Pin of hall sensor
 #define AMOUNTFLAPSA 45
+unsigned long lastRotationA = 0;
 
 
 //constants stepper B
@@ -33,26 +33,27 @@
 #define STEPPERPINB2 18
 #define STEPPERPINB3 17
 #define STEPPERPINB4 16
-#define STEPSB 2038 //28BYJ-48 stepper, number of steps
 #define HALLPINB 15 //Pin of hall sensor
 #define AMOUNTFLAPSB 45
+unsigned long lastRotationB = 0;
 
 //constants others
+#define STEPS 2038 //28BYJ-48 stepper, number of steps
 #define BAUDRATE 115200
 #define ROTATIONDIRECTION -1 //-1 for reverse direction
 #define OVERHEATINGTIMEOUT 2 //timeout in seconds to avoid overheating of stepper. After starting rotation, the counter will start. Stepper won't move again until timeout is passed
-unsigned long lastRotation = 0;
+
 
 //globals
 // A
 int displayedLetterA = 0; //currently shown letter
 int desiredLetterA = 0; //letter to be shown
 const String lettersA[] = {" ", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "Ä", "Ö", "Ü", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ".", "-", "?", "!"};
-Stepper stepper(STEPSA, STEPPERPINA1, STEPPERPINA3, STEPPERPINA2, STEPPERPINA4); //stepper setup
-bool lastInd1A = false; //store last status of phase
-bool lastInd2A = false; //store last status of phase
-bool lastInd3A = false; //store last status of phase
-bool lastInd4A = false; //store last status of phase
+Stepper stepperB(STEPS, STEPPERPINA1, STEPPERPINA3, STEPPERPINA2, STEPPERPINA4); //stepper setup
+bool lastIndA1 = false; //store last status of phase
+bool lastIndA2 = false; //store last status of phase
+bool lastIndA3 = false; //store last status of phase
+bool lastIndA4 = false; //store last status of phase
 float missedStepsA = 0; //cummulate steps <1, to compensate via additional step when reaching >1
 int currentlyrotatingA = 0; // 1 = drum is currently rotating, 0 = drum is standing still
 int stepperSpeedA = 10; //current speed of stepper, value only for first homing
@@ -64,11 +65,11 @@ int receivedNumberA = 0;
 int displayedLetterB = 0; //currently shown letter
 int desiredLetterB = 0; //letter to be shown
 const String lettersB[] = {" ", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "Ä", "Ö", "Ü", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ".", "-", "?", "!"};
-Stepper stepper(STEPSB, STEPPERPINB1, STEPPERPINB3, STEPPERPINB2, STEPPERPINB4); //stepper setup
-bool lastInd1B = false; //store last status of phase
-bool lastInd2B = false; //store last status of phase
-bool lastInd3B = false; //store last status of phase
-bool lastInd4B = false; //store last status of phase
+Stepper stepperB(STEPS, STEPPERPINB1, STEPPERPINB3, STEPPERPINB2, STEPPERPINB4); //stepper setup
+bool lastIndB1 = false; //store last status of phase
+bool lastIndB2 = false; //store last status of phase
+bool lastIndB3 = false; //store last status of phase
+bool lastIndB4 = false; //store last status of phase
 float missedStepsB = 0; //cummulate steps <1, to compensate via additional step when reaching >1
 int currentlyrotatingB = 0; // 1 = drum is currently rotating, 0 = drum is standing still
 int stepperSpeedB = 10; //current speed of stepper, value only for first homing
@@ -170,8 +171,11 @@ void loop() {
     }
 }
 
-//rotate to letter
 void rotateToLetter(int toLetterA, int toLetterB) {
+
+}
+//rotate to letter
+void rotateToLetterRaw(int toLetter, unsigned long lastRotation, int displayedLetter, &Stepper stepper, int missedSteps) {
 // UPDATED UPTO HERE
   if (lastRotation == 0 || (millis() - lastRotation > OVERHEATINGTIMEOUT * 1000)) {
     lastRotation = millis();
@@ -194,7 +198,7 @@ void rotateToLetter(int toLetterA, int toLetterB) {
 #endif
         //go directly to next letter, get steps from current letter to target letter
         int diffPosition = posLetter - posCurrentLetter;
-        startMotor();
+        startMotor(); //
         stepper.setSpeed(stepperSpeed);
         //doing the rotation letterwise
         for (int i = 0; i < diffPosition; i++) {
@@ -337,30 +341,56 @@ int calibrate(bool initialCalibration) {
 }
 
 //switching off the motor driver
-void stopMotor() {
-  lastInd1 = digitalRead(STEPPERPIN1);
-  lastInd2 = digitalRead(STEPPERPIN2);
-  lastInd3 = digitalRead(STEPPERPIN3);
-  lastInd4 = digitalRead(STEPPERPIN4);
-
-  digitalWrite(STEPPERPIN1, LOW);
-  digitalWrite(STEPPERPIN2, LOW);
-  digitalWrite(STEPPERPIN3, LOW);
-  digitalWrite(STEPPERPIN4, LOW);
+void stopMotor(int m) {
+  if(m==0){
+    lastIndA1 = digitalRead(STEPPERPINA1);
+    lastIndA2 = digitalRead(STEPPERPINA2);
+    lastIndA3 = digitalRead(STEPPERPINA3);
+    lastIndA4 = digitalRead(STEPPERPINA4);
+  
+    digitalWrite(STEPPERPINA1, LOW);
+    digitalWrite(STEPPERPINA2, LOW);
+    digitalWrite(STEPPERPINA3, LOW);
+    digitalWrite(STEPPERPINA4, LOW);
+    
+    currentlyrotatingA = 0; //set active state to not active
+  }
+  else{
+    lastIndB1 = digitalRead(STEPPERPINB1);
+    lastIndB2 = digitalRead(STEPPERPINB2);
+    lastIndB3 = digitalRead(STEPPERPINB3);
+    lastIndB4 = digitalRead(STEPPERPINB4);
+  
+    digitalWrite(STEPPERPINB1, LOW);
+    digitalWrite(STEPPERPINB2, LOW);
+    digitalWrite(STEPPERPINB3, LOW);
+    digitalWrite(STEPPERPINB4, LOW);
+    
+    currentlyrotatingB = 0; //set active state to not active
+  }
 #ifdef SERIAL_ENABLE
   Serial.println("Motor Stop");
 #endif
-  currentlyrotating = 0; //set active state to not active
-  delay(100);
+  //delay(100);
 }
 
-void startMotor() {
+void startMotor(int m) {
 #ifdef SERIAL_ENABLE
   Serial.println("Motor Start");
 #endif
-  currentlyrotating = 1; //set active state to active
-  digitalWrite(STEPPERPIN1, lastInd1);
-  digitalWrite(STEPPERPIN2, lastInd2);
-  digitalWrite(STEPPERPIN3, lastInd3);
-  digitalWrite(STEPPERPIN4, lastInd4);
+  if(m==0){
+    currentlyrotatingA = 1; //set active state to active
+    digitalWrite(STEPPERPINA1, lastIndA1);
+    digitalWrite(STEPPERPINA2, lastIndA2);
+    digitalWrite(STEPPERPINA3, lastIndA3);
+    digitalWrite(STEPPERPINA4, lastIndA4);
+  }
+  else{
+    currentlyrotatingB = 1; //set active state to active
+    digitalWrite(STEPPERPINB1, lastIndB1);
+    digitalWrite(STEPPERPINB2, lastIndB2);
+    digitalWrite(STEPPERPINB3, lastIndB3);
+    digitalWrite(STEPPERPINB4, lastIndB4);
+  }
+  
 }
