@@ -16,6 +16,7 @@
 #define ADRESSSW2 5
 #define ADRESSSW3 4
 #define ADRESSSW4 3
+#define ADRESSSW5 2
 
 //constants stepper
 #define STEPPERPIN1 11
@@ -60,6 +61,7 @@ void setup() {
   pinMode(ADRESSSW2, INPUT_PULLUP);
   pinMode(ADRESSSW3, INPUT_PULLUP);
   pinMode(ADRESSSW4, INPUT_PULLUP);
+  pinMode(ADRESSSW5, INPUT_PULLUP);
 
   //hall sensor
   pinMode(HALLPIN, INPUT);
@@ -232,7 +234,7 @@ void requestEvent() {
 
 //returns the adress of the unit as int from 0-15
 int getaddress() {
-  int address = !digitalRead(ADRESSSW4) + (!digitalRead(ADRESSSW3) * 2) + (!digitalRead(ADRESSSW2) * 4) + (!digitalRead(ADRESSSW1) * 8);
+  int address = !digitalRead(ADRESSSW5) + (!digitalRead(ADRESSSW4) * 2) + (!digitalRead(ADRESSSW3) * 4) + (!digitalRead(ADRESSSW2) * 8) + (!digitalRead(ADRESSSW1) * 16);
   return address;
 }
 
